@@ -1,7 +1,11 @@
+import junitparams.JUnitParamsRunner;
+import junitparams.Parameters;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import ru.yandex.samokat.model.MainPage;
@@ -11,64 +15,52 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+@RunWith(JUnitParamsRunner.class)
 public class MakeOrderTest {
     private WebDriver driver;
     private MainPage mainPage;
-
     private OrderPage orderPage;
-
-    private String dateTest;
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy"); // готовим нужный форматтер
+    private final String dateTest = LocalDate.now().plusDays(2).format(formatter); // получаем текущую дату, прибавляем к ней 2 дня и форматируем
     
     @Before
     public void setUp () {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy"); // готовим нужный форматтер
-        dateTest = LocalDate.now().plusDays(2).format(formatter); // получаем текущую дату, прибавляем к ней 2 дня и форматируем
         // driver = new ChromeDriver(); // В Хроме блокер на эти тесты
         driver = new FirefoxDriver();
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5)); // Ждем везде до 5 сек
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10)); // Ждем везде до 10 сек
         mainPage = new MainPage(driver);
         mainPage.open();
     }
-
     @Test
-    public void makeOrder() {
-        mainPage.clickMakeOrderButton();
+    @Parameters(method = "parametersForMakeOrder")
+    public void makeOrder(By makeOrderButtonSelector, String name, String surname, String address,
+                          String metro, String telephone, String comment) {
+        mainPage.scrollToMakeOrderButton(makeOrderButtonSelector);
+        mainPage.clickMakeOrderButton(makeOrderButtonSelector);
         orderPage = new OrderPage(driver);
-        orderPage.enterName("Вася");
-        orderPage.enterSurname("Пупкин");
-        orderPage.enterAddress("город Нигде, дом 1");
-        orderPage.enterMetro("Лубянка");
-        orderPage.enterTelephone("80000000000");
+        orderPage.enterName(name);
+        orderPage.enterSurname(surname);
+        orderPage.enterAddress(address);
+        orderPage.enterMetro(metro);
+        orderPage.enterTelephone(telephone);
         orderPage.clickNextButton();
         orderPage.enterDate(dateTest);
         orderPage.chooseRentalPeriod();
         orderPage.clickBlackCheckbox();
-        orderPage.enterComments("Почти закончил");
+        orderPage.enterComments(comment);
         orderPage.clickMakeOrderButton();
         orderPage.clickConfirmOrderButton();
         Assert.assertTrue("Сообщение об успешном создании заказа не появляется",
                 orderPage.isOrderConfirmationVisible());
     }
 
-    @Test
-    public void makeOrder2way() {
-        mainPage.scrollToMakeOrderButton1();
-        mainPage.clickMakeOrderButton1();
-        orderPage = new OrderPage(driver);
-        orderPage.enterName("Васяня");
-        orderPage.enterSurname("Пупкин");
-        orderPage.enterAddress("город Нигде, дом 2");
-        orderPage.enterMetro("Лубянка");
-        orderPage.enterTelephone("80000000000");
-        orderPage.clickNextButton();
-        orderPage.enterDate(dateTest);
-        orderPage.chooseRentalPeriod();
-        orderPage.clickBlackCheckbox();
-        orderPage.enterComments("Почти");
-        orderPage.clickMakeOrderButton();
-        orderPage.clickConfirmOrderButton();
-        Assert.assertTrue("Сообщение об успешном создании заказа не появляется",
-                orderPage.isOrderConfirmationVisible());
+    private Object[][] parametersForMakeOrder() {
+        return new Object[][]{{MainPage.MAKE_ORDER_TOP_BUTTON, "Вася", "Пупкин", "улица Никакая, дом 2",
+                    "Лубянка", "80000000000", "Почти"},
+                {MainPage.MAKE_ORDER_BOTTOM_BUTTON, "Иван", "Иванов", "бульвар Никакой, дом 12345",
+                        "Бульвар", "81234567890", "второй тест"},
+
+        };
     }
 
     @After
